@@ -5,7 +5,9 @@ spring:
     config:
       server:
         git:
-          uri: https://github.com/nitin0939/environment-variable-repo.git
+          uri: https://github.com/nitin0939/micro-services-full-architecture
+          search-paths: environment-variable-repo
+          default-label: master
 
 
 
