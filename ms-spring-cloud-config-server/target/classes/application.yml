@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: ms-spring-cloud-config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/nitin0939/environment-variable-repo.git
+
+
+
+  output:
+    ansi:
+      enabled: ALWAYS
+server:
+  port: ${port:8889}
+
+
+

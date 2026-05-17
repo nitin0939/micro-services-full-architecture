@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: ms-zuul-api-gateway-server
+  output:
+    ansi:
+      enabled: ALWAYS
+
+server:
+  port: ${port:8766}
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8777/eureka}
+
+
+zuul:
+  routes:
+    product-enquiry:
+      path: /product-enquiry/**
+      url: http://localhost:8700/
+    product-stock:
+      path: /product-stock/**
+      url: http://localhost:8800/,http://localhost:8801/,http://localhost:8802/
