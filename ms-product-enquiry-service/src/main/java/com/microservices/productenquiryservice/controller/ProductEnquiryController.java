@@ -1,8 +1,12 @@
 package com.microservices.productenquiryservice.controller;
 
 import com.microservices.productenquiryservice.beans.ProductEnquiryBean;
-import com.microservices.productenquiryservice.client.ProductStockClient;
+import com.microservices.productenquiryservice.exception.ProductStockServiceUnavailableException;
+import com.microservices.productenquiryservice.service.ProductStockService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductEnquiryController {
 
     @Autowired
-    ProductStockClient client;
+    ProductStockService productStockService;
 
 
     @GetMapping("/product-enquiry/name/{name}/availability/{availability}/unit/{unit}")
@@ -21,7 +25,7 @@ public class ProductEnquiryController {
 
 
 
-        ProductEnquiryBean productEnquiryBean=client.checkProductStock(name,availability);
+        ProductEnquiryBean productEnquiryBean=productStockService.checkProductStock(name,availability);
 
         double totalPrice=productEnquiryBean.getProductPrice().doubleValue()*unit;
         double discounts=productEnquiryBean.getDiscountOffer();
@@ -42,6 +46,9 @@ public class ProductEnquiryController {
 
     }
 
-
+    @ExceptionHandler(ProductStockServiceUnavailableException.class)
+    public ResponseEntity<String> handleProductStockServiceUnavailable(ProductStockServiceUnavailableException ex){
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ex.getMessage());
+    }
 
 }

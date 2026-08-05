@@ -32,3 +32,15 @@ management:
 #ms-product-stock-service:
 #  ribbon:
 #    listOfServers: http://localhost:8800, http://localhost:8801
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      productStockService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true

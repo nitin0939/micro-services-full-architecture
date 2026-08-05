@@ -31,6 +31,7 @@ Handles product enquiry requests from clients. Communicates with `ms-product-sto
 - Response includes: `id`, `productName`, `productPrice`, `productAvailability`, `discountOffer`, `unit`, `totalPrice`, `port`
 - Registered with Eureka for service discovery
 - Supports running on multiple ports for load balancing
+- Call to `ms-product-stock-service` is wrapped in a Resilience4j circuit breaker with a fallback that returns HTTP `503` instead of propagating a raw error when the stock service is down (see [ARCHITECTURE.md](ARCHITECTURE.md#circuit-breaker-resilience4j))
 
 ### ms-zuul-api-gateway-server (Port: 8766)
 API Gateway built with Netflix Zuul. Routes incoming requests to the appropriate downstream microservice and integrates with Eureka for service discovery.
@@ -61,6 +62,17 @@ Demonstrates Spring Cloud Config Client integration. Fetches properties from the
 - Auto-triggers `/actuator/refresh` on every request to pick up latest config changes dynamically
 - Exposes `name` and `description` properties fetched from the config server
 - Only the `refresh` actuator endpoint is exposed for security
+## Load Balancing Across Multiple Instances
+
+`ms-product-stock-service` sets its port as `server.port: ${port:8800}`, so the same jar can be started multiple times with a different port override — e.g. `java -jar ms-product-stock-service.jar --port=8801` and `--port=8802` — to run 3 instances (`8800`, `8801`, `8802`) side by side. Each instance registers with `ms-eureka-naming-server` under the same `spring.application.name` (`ms-product-stock-service`), so Eureka tracks one logical service backed by 3 live instances rather than 3 separate services.
+
+From there, two independent clients load-balance across those instances in different ways:
+
+- **`ms-product-enquiry-service` (Feign + Ribbon, discovery-based):** its `ProductStockClient` is a `@FeignClient(name="ms-product-stock-service")` with no hardcoded URL, so it resolves the live instance list from Eureka at call time and Ribbon picks one using its default round-robin strategy. Because each response carries the answering `port`, calling `/product-enquiry/...` repeatedly shows the port field rotating across `8800`/`8801`/`8802`, confirming requests are actually being spread across instances.
+- **`ms-zuul-api-gateway-server` (Ribbon, static list):** its `product-stock` route in `bootstrap.yaml` isn't Eureka-resolved — it lists the instance URLs directly (`http://localhost:8800/,http://localhost:8801/,http://localhost:8802/`), and Zuul's underlying Ribbon round-robins across that fixed list. This works even without Eureka registration, but unlike the Feign approach it won't automatically pick up new instances added later without updating the route config.
+
+`ms-spring-cloud-api-gateway-service` currently only routes `/product-enquiry/**` (not `/product-stock/**` directly), so it doesn't demonstrate load balancing against the stock service in this repo.
+
 ## End Points
 
 ### Property Access Service
